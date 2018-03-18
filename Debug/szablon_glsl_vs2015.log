@@ -1,8 +1,10 @@
 ﻿  szablon_glut.cpp
-  szablon_glsl_vs2015.vcxproj -> C:\Users\Admin\Documents\szablon_glsl_vs2015\Debug\szablon_glsl_vs2015.exe
-  C:\Users\Admin\Documents\szablon_glsl_vs2015\szablon_glsl_vs2015\dlls\x86\DevIL.dll
-  C:\Users\Admin\Documents\szablon_glsl_vs2015\szablon_glsl_vs2015\dlls\x86\freeglut.dll
-  C:\Users\Admin\Documents\szablon_glsl_vs2015\szablon_glsl_vs2015\dlls\x86\glew32.dll
-  C:\Users\Admin\Documents\szablon_glsl_vs2015\szablon_glsl_vs2015\dlls\x86\ILU.dll
-  C:\Users\Admin\Documents\szablon_glsl_vs2015\szablon_glsl_vs2015\dlls\x86\ILUT.dll
+c:\users\admin\documents\opengl\szablon_glut.cpp(156): warning C4244: "=": konwersja z "double" do "float", możliwa utrata danych
+c:\users\admin\documents\opengl\szablon_glut.cpp(157): warning C4244: "=": konwersja z "double" do "float", możliwa utrata danych
+  szablon_glsl_vs2015.vcxproj -> C:\Users\Admin\Documents\OpenGL\Debug\szablon_glsl_vs2015.exe
+  C:\Users\Admin\Documents\OpenGL\dlls\x86\DevIL.dll
+  C:\Users\Admin\Documents\OpenGL\dlls\x86\freeglut.dll
+  C:\Users\Admin\Documents\OpenGL\dlls\x86\glew32.dll
+  C:\Users\Admin\Documents\OpenGL\dlls\x86\ILU.dll
+  C:\Users\Admin\Documents\OpenGL\dlls\x86\ILUT.dll
   5 File(s) copied

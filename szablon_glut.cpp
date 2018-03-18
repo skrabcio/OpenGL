@@ -4,17 +4,21 @@
 #include <vector>
 
 #include "shaders.h"
+#define M_PI 3.141592
 
 const int WIDTH = 512; // szerokosc okna
 const int HEIGHT = 512; // wysokosc okna
-const int VAOS =1; // liczba VAO
-const int VBOS = 2; // liczba VBO
+const int VAOS =2; // liczba VAO
+const int VBOS = 3; // liczba VBO
+
+const int numOfVertices = 10; //liczba wierzcholkow
+const float radius = 0.4f; // promien figury
 
 void onShutdown();
 void initGL();
 void renderScene();
 void setupShaders();
-void setupBuffers();
+void drawPolygons( int numOfVertices, float radius);
 
 //******************************************************************************************
 GLuint shaderProgram; // identyfikator programu cieniowania
@@ -96,7 +100,7 @@ void initGL()
 
 	setupShaders();
 
-	setupBuffers();
+	drawPolygons( numOfVertices, radius );
 }
 
 /*------------------------------------------------------------------------------------------
@@ -104,13 +108,16 @@ void initGL()
 **------------------------------------------------------------------------------------------*/
 void renderScene()
 {
-    glClear( GL_COLOR_BUFFER_BIT ); // czyszczenie bufora koloru
+	glClear(GL_COLOR_BUFFER_BIT); // czyszczenie bufora koloru
 
-	glUseProgram( shaderProgram ); // wlaczenie programu cieniowania
+	glUseProgram(shaderProgram); // wlaczenie programu cieniowania
+
+	GLint position = glGetUniformLocation(shaderProgram, "colors"); // pobranie lokalizacji obiektu
+	glUniform3f(position, 1.0, 1.0, 0.0); // ustalenie koloru w zmiennej "colors" dla podanej lokalizacji
 
 	// wyrysowanie pierwszego VAO (trojkat)
-	glBindVertexArray( vao[0] );
-    glDrawArrays( GL_TRIANGLES, 0, 4 );
+	glBindVertexArray(vao[1]);
+    glDrawArrays( GL_TRIANGLE_FAN, 0, numOfVertices );
 
 	glBindVertexArray( 0 );
 
@@ -132,56 +139,38 @@ void setupShaders()
 /*------------------------------------------------------------------------------------------
 ** funkcja inicjujaca VAO oraz zawarte w nim VBO z danymi o trojkacie 
 **------------------------------------------------------------------------------------------*/
-void setupBuffers()
+void drawPolygons(int numOfVertices, float radius)
 {
-	glGenVertexArrays( 1, vao ); // generowanie identyfikatora VAO
-	glGenBuffers( 2, buffers ); // generowanie identyfikatorow VBO
+	glGenVertexArrays(2, vao);
+	glGenBuffers(3, buffers);
+	const int arraySize = numOfVertices * 4;
 
-	// wspolrzedne wierzcholkow trojkata
-	float vertices[] = 
-	{
-		0.0f, 1.0f, 0.0f, 1.0f,
-		1.0f, 0.0f, 0.0f, 1.0f,
-		-1.0f, 0.0f, 0.0f, 1.0f,
-		0.0f, -1.0f, 0.0f, 1.0f
-		
-	};
- 
-	// kolory wierzchokow trojkata
-	std::vector<float> colors;
-	colors.push_back( 1.0f );
-	colors.push_back( 0.0f );
-	colors.push_back( 0.0f );
-	colors.push_back( 1.0f );
+	// wspolrzedne wierzcholkow wielokata
+	float vertices[400];
+	int arrayBuffor = 0;
+
+	for (int i = 0; i < numOfVertices; i++) {
+
+		arrayBuffor = i * 4;
+		//obliczanie wspolrzednych wierzcholkow wielokata
+		vertices[arrayBuffor + 0] = radius * cos((M_PI*i * 2) / numOfVertices);
+		vertices[arrayBuffor + 1] = radius * sin((M_PI*i * 2) / numOfVertices);
+		vertices[arrayBuffor + 2] = 0.0f;
+		vertices[arrayBuffor + 3] = 1.0f;
+	}
 	
-	colors.push_back( 1.0f );
-	colors.push_back( 0.0f );
-	colors.push_back( 0.0f );
-	colors.push_back( 1.0f );
-
-	colors.push_back( 0.0f );
-	colors.push_back( 0.0f );
-	colors.push_back( 1.0f );
-	colors.push_back( 1.0f );
-
-	colors.push_back(0.0f);
-	colors.push_back(0.0f);
-	colors.push_back(1.0f);
-	colors.push_back(1.0f);
-
-    glBindVertexArray( vao[0] ); // dowiazanie pierwszego VAO    	
     
-    // VBO dla wspolrzednych wierzcholkow
-    glBindBuffer( GL_ARRAY_BUFFER, buffers[0] );
-    glBufferData( GL_ARRAY_BUFFER, sizeof( vertices ), vertices, GL_STATIC_DRAW );
-    glEnableVertexAttribArray( vertexLoc ); // wlaczenie tablicy atrybutu wierzcholka - wspolrzedne
-    glVertexAttribPointer( vertexLoc, 4, GL_FLOAT, GL_FALSE, 0, 0 ); // zdefiniowanie danych tablicy atrybutu wierzchoka - wspolrzedne
+	glGenVertexArrays( 1, vao );
+	glGenBuffers( 1, buffers );
+
+	glBindVertexArray( VAOS );
  
     // VBO dla kolorow
-    glBindBuffer( GL_ARRAY_BUFFER, buffers[1] );
-	glBufferData( GL_ARRAY_BUFFER, colors.size() * sizeof( float ), reinterpret_cast<GLfloat *>(&colors[0]), GL_STATIC_DRAW );
-    glEnableVertexAttribArray( colorLoc ); // wlaczenie tablicy atrybutu wierzcholka - kolory
-    glVertexAttribPointer( colorLoc, 4, GL_FLOAT, GL_FALSE, 0, 0 ); // zdefiniowanie danych tablicy atrybutu wierzcholka - kolory
+    glBindBuffer( GL_ARRAY_BUFFER, VBOS );
+	glBufferData( GL_ARRAY_BUFFER, sizeof( vertices ), vertices, GL_STATIC_DRAW );
+
+    glEnableVertexAttribArray( vertexLoc ); // wlaczenie tablicy atrybutu wierzcholkow
+    glVertexAttribPointer( vertexLoc, 4, GL_FLOAT, GL_FALSE, 0, 0 ); // zdefiniowanie danych tablicy atrybutu wierzcholkow
 
 	
 	glBindVertexArray( 0 );
