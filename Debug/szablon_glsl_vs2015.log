@@ -1,7 +1,4 @@
-﻿  shaders.cpp
-c:\users\admin\documents\opengl\shaders.cpp(24): warning C4244: "inicjowanie": konwersja z "std::streamoff" do "unsigned long", możliwa utrata danych
-  szablon_glut.cpp
-  Generowanie kodu...
+﻿  szablon_glut.cpp
   szablon_glsl_vs2015.vcxproj -> C:\Users\Admin\Documents\OpenGL\Debug\szablon_glsl_vs2015.exe
   C:\Users\Admin\Documents\OpenGL\dlls\x86\DevIL.dll
   C:\Users\Admin\Documents\OpenGL\dlls\x86\freeglut.dll
