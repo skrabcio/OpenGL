@@ -1,3 +1,10 @@
+/* OdpowiedŸ na pytanie:
+Pierwszy program cieniowania (wierzcho³ków) pobiera wartoœæ koloru w punkcie w którym le¿¹ tylko wiercho³ki, a nastêpnie kolor jest rozmywany od wierzcho³ków
+wg³¹b figury/obiektu, przez co tworzy siê gradient, kolory siê mieszaj¹.
+Drugi program cieniowania (fragmentów) sprawdza wartoœæ koloru w ka¿dym punkcie (pikselu) figury/obiektu, przez co ka¿dy fragment figury ma tylko
+jeden kolor, s¹ prosto obcinane i nie nastêpuje mieszanie kolorów (nie tworzy siê gradient).
+*/
+
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 #include <iostream>
