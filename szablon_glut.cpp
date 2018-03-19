@@ -8,10 +8,10 @@
 
 const int WIDTH = 512; // szerokosc okna
 const int HEIGHT = 512; // wysokosc okna
-const int VAOS =2; // liczba VAO
-const int VBOS = 3; // liczba VBO
+const int VAOS = 1; // liczba VAO
+const int VBOS = 2; // liczba VBO
 
-const int numOfVertices = 10; //liczba wierzcholkow
+const int numOfVertices = 5; //liczba wierzcholkow
 const float radius = 0.4f; // promien figury
 
 void onShutdown();
@@ -115,11 +115,11 @@ void renderScene()
 	GLint position = glGetUniformLocation(shaderProgram, "colors"); // pobranie lokalizacji obiektu
 	glUniform3f(position, 1.0, 1.0, 0.0); // ustalenie koloru w zmiennej "colors" dla podanej lokalizacji
 
-	// wyrysowanie pierwszego VAO (trojkat)
-	glBindVertexArray(vao[1]);
+	// wyrysowanie VAO
+	glBindVertexArray(vao[0]);
     glDrawArrays( GL_TRIANGLE_FAN, 0, numOfVertices );
 
-	glBindVertexArray( 0 );
+	glBindVertexArray(0);
 
     glutSwapBuffers();
 }
@@ -141,9 +141,6 @@ void setupShaders()
 **------------------------------------------------------------------------------------------*/
 void drawPolygons(int numOfVertices, float radius)
 {
-	glGenVertexArrays(2, vao);
-	glGenBuffers(3, buffers);
-	const int arraySize = numOfVertices * 4;
 
 	// wspolrzedne wierzcholkow wielokata
 	float vertices[400];
