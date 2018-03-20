@@ -104,9 +104,16 @@ void initGL()
 **------------------------------------------------------------------------------------------*/
 void renderScene()
 {
+	GLfloat angle = 45; // zmienna przechowujaca kat o jaki ma nastapic obrot, podany w stopniach
+
 	glClear(GL_COLOR_BUFFER_BIT); // czyszczenie bufora koloru
 
 	glUseProgram(shaderProgram); // wlaczenie programu cieniowania
+
+	
+	GLint location = glGetUniformLocation( shaderProgram, "angle" ); // ustalenie lokalizacji zmiennej globalnej "angle"
+	glUniform1f(location, angle);  // przekazanie do zmiennej globalnej wartosci zmiennej "angle"
+
 
 								 // wyrysowanie pierwszego VAO (trojkat)
 	glBindVertexArray(vao[0]);
