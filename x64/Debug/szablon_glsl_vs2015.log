@@ -1,8 +1,7 @@
 ﻿  szablon_glut.cpp
 c:\users\admin\documents\opengl\szablon_glut.cpp(240): warning C4305: "/=": obcięcie z "double" do "float"
 c:\users\admin\documents\opengl\szablon_glut.cpp(247): warning C4305: "*=": obcięcie z "double" do "float"
-c:\users\admin\documents\opengl\szablon_glut.cpp(352): warning C4267: "=": konwersja z "size_t" do "unsigned int", możliwa utrata danych
-c:\users\admin\documents\opengl\szablon_glut.cpp(316): warning C4101: "angle2": lokalna zmienna, do której nie istnieje odwołanie
+c:\users\admin\documents\opengl\szablon_glut.cpp(383): warning C4267: "=": konwersja z "size_t" do "unsigned int", możliwa utrata danych
   szablon_glsl_vs2015.vcxproj -> C:\Users\Admin\Documents\OpenGL\x64\Debug\szablon_glsl_vs2015.exe
   C:\Users\Admin\Documents\OpenGL\dlls\x64\DevIL.dll
   C:\Users\Admin\Documents\OpenGL\dlls\x64\freeglut.dll

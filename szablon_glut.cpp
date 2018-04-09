@@ -314,10 +314,10 @@ void setupBuffers()
 	float height = 1.0f;
 	int prymitive = 0;
 	float angle, angle2, u, v, x, y;
+	int vertices_base = 24, vertices_side = 24;
 
 	if(model == 0)
 	{
-		int vertices_base = 24, vertices_side = 24;
 		int prymitive = (vertices_base + 2) * vertices_side;
 
 		for (int i = 0; i < vertices_base; i++) 
@@ -347,10 +347,40 @@ void setupBuffers()
 				indexes.push_back(i * vertices_side + vertices_side + j);
 			}
 			indexes.push_back(prymitive);
-		}
-		renderElements = indexes.size();
+		}		
 	}
+	else if (model == 1)
+	{
+		for ( int i = 0; i < vertices_side; i++)
+		{
+			for (int j = 0; j < vertices_base; j++) 
+			{
+				x = (float)j;
+				y = (float)i;
 
+				if (i != (vertices_side - 1) && j != (vertices_base - 1)) 
+				{
+					indexes.push_back(i * vertices_base + vertices_base + j);
+					indexes.push_back(i * vertices_base + j + 1);
+					indexes.push_back(i * vertices_base + j);
+					indexes.push_back(i * vertices_base + j + 1);
+					indexes.push_back(i * vertices_base + vertices_base + j);
+					indexes.push_back(i * vertices_base + vertices_base + j + 1 );
+				}
+
+				u = x / (vertices_base - 1);
+				v = y / (vertices_side - 1);
+				angle = glm::radians(360 * u);
+				angle2 = glm::radians(-90 + 180 * v);
+
+				vertices.push_back(radius * cos(angle) * cos(angle2));
+				vertices.push_back(radius * sin(angle) * cos(angle2));
+				vertices.push_back(radius * sin(angle2));
+				vertices.push_back(1);
+			}
+		}
+	}
+	renderElements = indexes.size();
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 
