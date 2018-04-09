@@ -7,11 +7,13 @@
 #include <iostream>
 
 #include "shaders.h"
-#include "teapot_low.h"
+#include <vector>
+using namespace std;
 
 const int WIDTH = 768;
 const int HEIGHT = 576;
 const float ROT_STEP = 10.0f;
+int model = 0;
 
 void onShutdown();
 void printStatus();
@@ -246,8 +248,24 @@ void keyboard(unsigned char key, int x, int y)
 			updateProjectionMatrix();
 		}
 		break;
-	}
 
+	case '1':
+		model = 0;
+		setupBuffers();
+		renderScene();
+		break;
+
+	case '2':
+		model = 1;
+		setupBuffers();
+		renderScene();
+		break;
+	case '3':
+		model = 2;
+		setupBuffers();
+		renderScene();
+		break;
+	}
 	glutPostRedisplay();
 }
 
@@ -290,21 +308,64 @@ void setupShaders()
 **------------------------------------------------------------------------------------------*/
 void setupBuffers()
 {
-	glGenVertexArrays(1, &vao);
-	glGenBuffers(2, buffers);
+	vector<GLfloat> vertices;
+	vector<unsigned int> indexes;
+	float radius = 0.8f;
+	float height = 1.0f;
+	int prymitive = 0;
+	float angle, angle2, u, v, x, y;
 
+	if(model == 0)
+	{
+		int vertices_base = 24, vertices_side = 24;
+		int prymitive = (vertices_base + 2) * vertices_side;
+
+		for (int i = 0; i < vertices_base; i++) 
+		{
+			if ( i == 0 )
+			{
+				for (int j = 0; j < vertices_side; j++) 
+				{
+					indexes.push_back(j);
+					indexes.push_back(0);
+				}
+			}
+			for (int j = 0; j < vertices_side; j++) 
+			{
+				x = (float)j;
+				y = (float)i;
+				u = x / (vertices_side - 1);
+				v = y / (vertices_base - 1);
+				angle = glm::radians(360 * u);
+
+				vertices.push_back(radius * (1 - v) * cos(angle));
+				vertices.push_back(radius * (1 - v) * sin(angle));
+				vertices.push_back((height * v) - (height / 2));
+				vertices.push_back(1);
+
+				indexes.push_back(i * vertices_side + j);
+				indexes.push_back(i * vertices_side + vertices_side + j);
+			}
+			indexes.push_back(prymitive);
+		}
+		renderElements = indexes.size();
+	}
+
+	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 
+	glGenBuffers(2, buffers);
+	// VBO dla wierzcholkow
 	glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(teapotLowPosition), teapotLowPosition, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), &vertices[0], GL_STATIC_DRAW);
+	glEnableVertexAttribArray(vertexLoc);
+	glVertexAttribPointer(vertexLoc, 4, GL_FLOAT, GL_FALSE, 0, 0);
 
+	// VBO dla indeksow
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers[1]);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(teapotLowIndices), teapotLowIndices, GL_STATIC_DRAW);
-
-	renderElements = 3 * TEAPOT_LOW_INDICES_COUNT;
-
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexes.size() * sizeof(GLfloat), &indexes[0], GL_STATIC_DRAW);
+	glEnable(GL_PRIMITIVE_RESTART);
+	glPrimitiveRestartIndex(prymitive);
 	glBindVertexArray(0);
 }
 
