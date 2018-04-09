@@ -13,7 +13,7 @@ using namespace std;
 const int WIDTH = 768;
 const int HEIGHT = 576;
 const float ROT_STEP = 10.0f;
-int model = 0;
+int model = 0; // indeks bryly 0- stozek, 1- kula, 2 - walec
 
 void onShutdown();
 void printStatus();
@@ -249,18 +249,18 @@ void keyboard(unsigned char key, int x, int y)
 		}
 		break;
 
-	case '1':
+	case '1': // stozek
 		model = 0;
 		setupBuffers();
 		renderScene();
 		break;
 
-	case '2':
+	case '2': // kula
 		model = 1;
 		setupBuffers();
 		renderScene();
 		break;
-	case '3':
+	case '3': // walec
 		model = 2;
 		setupBuffers();
 		renderScene();
@@ -308,19 +308,19 @@ void setupShaders()
 **------------------------------------------------------------------------------------------*/
 void setupBuffers()
 {
-	vector<GLfloat> vertices;
-	vector<unsigned int> indexes;
-	float radius = 0.5f;
-	float height = 2.0f;
-	int prymitive = 0;
-	float angle, angle2, u, v, x, y;
-	int vertices_base = 24, vertices_side = 24;
+	vector<GLfloat> vertices;  // wierzcholki
+	vector<unsigned int> indexes; // indeksy
+	float radius = 0.5f; // promien
+	float height = 2.0f; // wysokosc
+	int prymitive = 0; // ilosc prymytiwów
+	float angle, angle2, u, v, x, y; // zmienne do obliczen
+	int vertices_base = 24, vertices_side = 24; // wierzcho³ki w podstawie i œcianie
 
-	if(model == 0)
+	if(model == 0) // stozek
 	{
-		int prymitive = (vertices_base + 2) * vertices_side;
+		int prymitive = (vertices_base + 2) * vertices_side; // obliczenie prymytiwów
 
-		for (int i = 0; i < vertices_base; i++) 
+		for (int i = 0; i < vertices_base; i++)  
 		{
 			if ( i == 0 )
 			{
@@ -331,7 +331,7 @@ void setupBuffers()
 				}
 			}
 			for (int j = 0; j < vertices_side; j++) 
-			{
+			{  // wzor na stozek
 				x = (float)j;
 				y = (float)i;
 				u = x / (vertices_side - 1);
@@ -349,12 +349,12 @@ void setupBuffers()
 			indexes.push_back(prymitive);
 		}		
 	}
-	else if (model == 1)
+	else if (model == 1) // kula
 	{
 		for ( int i = 0; i < vertices_side; i++)
 		{
 			for (int j = 0; j < vertices_base; j++) 
-			{
+			{ // wzór na kule
 				x = (float)j;
 				y = (float)i;
 
@@ -381,8 +381,8 @@ void setupBuffers()
 		}
 	}
 
-	else
-	{
+	else // walec
+	{	// tworzenie prymytiwów
 		for (int i = 0; i < vertices_side; i++) {
 			if (i == 0 || i == (vertices_side - 1)) {
 				for (int j = 1; j < (vertices_base - 1); j++) {
@@ -392,7 +392,7 @@ void setupBuffers()
 				}
 			}
 			for (int j = 0; j < vertices_base; j++) {
-
+				// wzór na walec
 	
 				x = (float)i; 
 				y = (float)j;
