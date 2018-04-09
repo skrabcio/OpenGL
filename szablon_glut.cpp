@@ -310,8 +310,8 @@ void setupBuffers()
 {
 	vector<GLfloat> vertices;
 	vector<unsigned int> indexes;
-	float radius = 0.8f;
-	float height = 1.0f;
+	float radius = 0.5f;
+	float height = 2.0f;
 	int prymitive = 0;
 	float angle, angle2, u, v, x, y;
 	int vertices_base = 24, vertices_side = 24;
@@ -340,7 +340,7 @@ void setupBuffers()
 
 				vertices.push_back(radius * (1 - v) * cos(angle));
 				vertices.push_back(radius * (1 - v) * sin(angle));
-				vertices.push_back((height * v) - (height / 2));
+				vertices.push_back(height * v);
 				vertices.push_back(1);
 
 				indexes.push_back(i * vertices_side + j);
@@ -380,6 +380,43 @@ void setupBuffers()
 			}
 		}
 	}
+
+	else
+	{
+		for (int i = 0; i < vertices_side; i++) {
+			if (i == 0 || i == (vertices_side - 1)) {
+				for (int j = 1; j < (vertices_base - 1); j++) {
+					indexes.push_back(i * vertices_base);
+					indexes.push_back(j + i * vertices_base);
+					indexes.push_back(j + i * vertices_base + 1);
+				}
+			}
+			for (int j = 0; j < vertices_base; j++) {
+
+	
+				x = (float)i; 
+				y = (float)j;
+				u = y / (vertices_base - 1);
+				v = x / (vertices_side - 1);
+				angle = glm::radians(360 * u);
+
+				vertices.push_back(radius * cos(angle));
+				vertices.push_back(radius * sin(angle));
+				vertices.push_back((height * v - height / 2));
+				vertices.push_back(1);
+
+				if (i != vertices_side - 1 && j != vertices_base - 1) {
+					indexes.push_back(i * vertices_base + vertices_base + j);
+					indexes.push_back(i * vertices_base + j + 1);
+					indexes.push_back(i * vertices_base + j);
+					indexes.push_back(i * vertices_base + j + 1);
+					indexes.push_back(i * vertices_base + vertices_base + j);
+					indexes.push_back(i * vertices_base + vertices_base + j + 1);
+				}
+			}
+		}
+
+	}
 	renderElements = indexes.size();
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
@@ -394,8 +431,12 @@ void setupBuffers()
 	// VBO dla indeksow
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers[1]);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexes.size() * sizeof(GLfloat), &indexes[0], GL_STATIC_DRAW);
-	glEnable(GL_PRIMITIVE_RESTART);
-	glPrimitiveRestartIndex(prymitive);
+	
+	if (model == 0)
+	{
+		glEnable(GL_PRIMITIVE_RESTART);
+		glPrimitiveRestartIndex(prymitive);
+	}
 	glBindVertexArray(0);
 }
 
