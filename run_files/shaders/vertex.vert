@@ -1,13 +1,11 @@
 #version 140
  
-in vec4 vPosition; // pozycja wierzcholka w lokalnym ukladzie wspolrzednych
-in vec3 vColor; // kolor wierzcholka
+uniform mat4 modelViewMatrix; // macierz model-widok
+uniform mat4 projectionMatrix; // macierz projekcji
  
-out vec3 color; // kolor przekazywany do shadera fragmentow
+in vec4 vPosition; // pozycja wierzcholka w lokalnym ukladzie wspolrzednych
  
 void main()
 {
-    color = vColor;
-
-    gl_Position = vPosition;
+    gl_Position = projectionMatrix * modelViewMatrix * vPosition;
 }
