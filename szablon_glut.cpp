@@ -12,7 +12,7 @@ using namespace std;
 
 const int WIDTH = 768;
 const int HEIGHT = 576;
-int type = 0;
+int type = 0; // wersja grafiki
 
 void onShutdown();
 void initGL();
@@ -28,7 +28,7 @@ GLuint buffers[2]; // identyfikatory VBO
 GLuint shaderProgram; // identyfikator programu cieniowania
 
 GLuint vertexLoc; // lokalizacja atrybutu wierzcholka - wspolrzedne wierzcholka
-GLuint colorLoc;
+GLuint colorLoc; // lokalizacja koloru
 
 
 /*------------------------------------------------------------------------------------------
@@ -124,33 +124,37 @@ void renderScene()
 
 	float angle;
 	
-	if (type != 0) angle = 0.0f;
+	if (type != 0) angle = 0.0f;  // obrót o 45 stopni w zale¿noœci od wersji
 	else angle = 45.0f;
 
-	for (int i = 0; i < 5; i++) 
+	for (int i = 0; i < 5; i++)  // wiersze
 	{
-		for (int j = 0; j < 5; j++)
+		for (int j = 0; j < 5; j++) // kolumny
 		{
-			for (int k = 0; k < 4; k++)
+			for (int k = 0; k < 4; k++) // trojkaty wokó³ kwadratów
 			{
-				glm::mat4 transform;
+				glm::mat4 transform;  //macierz transformacji
+				// wyliczanie pozycji trójk¹tów ( przesuwanie, obrót, skalowanie, przesuwanie)
 				transform = glm::translate(transform, glm::vec3(-0.80f + (j * 0.4f), 0.80f - (i * 0.4f), 0.0f));
 				transform = glm::rotate(transform, glm::radians(angle + (k*90.0f)), glm::vec3(0.0f, 0.0f, 1.0f));
 				transform = glm::scale(transform, glm::vec3(0.2f, 0.2f, 0.2f));
 				transform = glm::translate(transform, glm::vec3(0.0f, -0.75f, 0.0f));
 
+				// rysowanie trójk¹tów
 				glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(transform));
 				glBindVertexArray(vao[0]);
 				glDrawArrays(GL_TRIANGLES, 0, 3);
 			}
 
-			glm::mat4 transform;
-			transform = glm::translate(transform, glm::vec3(-0.80f + (j * 0.4f), 0.80f - (i * 0.4f), 0.0f));
-
+			glm::mat4 transform; //macierz transformacji dla kwadratów
+			transform = glm::translate(transform, glm::vec3(-0.80f + (j * 0.4f), 0.80f - (i * 0.4f), 0.0f)); //przesuniêcie
+			// obrót w zale¿noœci od wersji
 			if (type == 0) transform = glm::rotate(transform, glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-
+			//skalowanie, przesuwanie
 			transform = glm::scale(transform, glm::vec3(0.2f, 0.2f, 0.2f));
 			transform = glm::translate(transform, glm::vec3(0.0f, 0.0f, 0.0f));
+
+			//wyrysowanie kwadratu
 			glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(transform));
 			glBindVertexArray(vao[1]);
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -174,11 +178,11 @@ void keyboard(unsigned char key, int x, int y)
 		exit(0);
 		break;
 
-	case '1': // stozek
+	case '1': // u³o¿enie typu romb
 		type = 0;
 		break;
 
-	case '2': // kula
+	case '2': //  u³o¿enie typu kwadrat
 		type = 1;
 		break;
 	}
@@ -204,17 +208,18 @@ void setupShaders()
 **------------------------------------------------------------------------------------------*/
 void setupBuffers()
 {
-	glGenVertexArrays(2, vao);
-	glGenBuffers(2, buffers);
-	int space = 8 * sizeof(float);
+	glGenVertexArrays(2, vao); // generowanie VAO
+	glGenBuffers(2, buffers); // generowanie VBO
+	int space = 8 * sizeof(float); // co ile wartoœci zaczyna siê kolejny wierzcholek w pamiêci
 
+	//wierzcho³ki trójk¹ta
 	float triangle[] = 
 	{
 		0.0f, 0.25f, 0.0f, 1.0f, 0.0f, 0.2f, 0.5f, 1.0f,
 		-0.25f, -0.25f, 0.0f, 1.0f, 0.0f, 0.2f, 0.5f, 1.0f,
 		0.25f, -0.25f, 0.0f, 1.0f, 0.0f, 0.2f, 0.5f, 1.0f,
 	};
-
+	// VAO i VBO dla trójk¹ta 
 	glBindVertexArray(vao[0]);
 	glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(triangle), triangle, GL_STATIC_DRAW);
@@ -224,6 +229,7 @@ void setupBuffers()
 	glEnableVertexAttribArray(colorLoc);
 	glVertexAttribPointer(colorLoc, 4, GL_FLOAT, GL_FALSE, space, (void*)(4 * sizeof(float)));
 
+	// wspó³rzednie wierzcho³ków kwadratu
 	float square[] = 
 	{
 		-0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f,
@@ -231,7 +237,7 @@ void setupBuffers()
 		0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f,
 		0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f
 	};
-
+	//VAO i VBO dla kwadratu
 	glBindVertexArray(vao[1]);
 	glBindBuffer(GL_ARRAY_BUFFER, buffers[1]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(square), square, GL_STATIC_DRAW);
