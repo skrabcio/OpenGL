@@ -1,11 +1,15 @@
 #version 140
  
-uniform mat4 modelViewMatrix; // macierz model-widok
-uniform mat4 projectionMatrix; // macierz projekcji
- 
-in vec4 vPosition; // pozycja wierzcholka w lokalnym ukladzie wspolrzednych
- 
+ in vec4 vPosition; // pozycja wierzcholka w lokalnym ukladzie wspolrzednych
+ in vec3 vColor;
+
+ out vec3 color;
+
+ uniform mat4 position;
+
 void main()
 {
-    gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+	color = vColor;
+
+    gl_Position = position * vPosition;
 }

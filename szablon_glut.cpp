@@ -7,7 +7,7 @@
 #include <iostream>
 
 #include "shaders.h"
-#include <vector>
+
 using namespace std;
 
 const int WIDTH = 768;
@@ -65,11 +65,9 @@ int main(int argc, char *argv[])
 		exit(2);
 	}
 
-	glutReshapeFunc(changeSize);
+	
 	glutDisplayFunc(renderScene);
-
 	glutKeyboardFunc(keyboard);
-	glutSpecialFunc(specialKeys);
 
 	initGL();
 
@@ -84,7 +82,7 @@ int main(int argc, char *argv[])
 void onShutdown()
 {
 	glDeleteBuffers(2, buffers);
-	glDeleteVertexArrays(1, &vao);
+	glDeleteVertexArrays(2, vao);
 	glDeleteProgram(shaderProgram);
 }
 
@@ -106,7 +104,6 @@ void printStatus()
 void initGL()
 {
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	glEnable(GL_DEPTH_TEST);
 
 	setupShaders();
 
@@ -123,8 +120,42 @@ void renderScene()
 {
 	glClear(GL_COLOR_BUFFER_BIT);
 	glUseProgram(shaderProgram);
-	GLint lokalizacja = glGetUniformLocation(shaderProgram, "pozycja");
+	GLint location = glGetUniformLocation(shaderProgram, "position");
 
+	float angle;
+	
+	if (type != 0) angle = 0.0f;
+	else angle = 45.0f;
+
+	for (int i = 0; i < 5; i++) 
+	{
+		for (int j = 0; j < 5; j++)
+		{
+			for (int k = 0; k < 4; k++)
+			{
+				glm::mat4 transform;
+				transform = glm::translate(transform, glm::vec3(-0.80f + (j * 0.4f), 0.80f - (i * 0.4f), 0.0f));
+				transform = glm::rotate(transform, glm::radians(angle + (k*90.0f)), glm::vec3(0.0f, 0.0f, 1.0f));
+				transform = glm::scale(transform, glm::vec3(0.2f, 0.2f, 0.2f));
+				transform = glm::translate(transform, glm::vec3(0.0f, -0.75f, 0.0f));
+
+				glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(transform));
+				glBindVertexArray(vao[0]);
+				glDrawArrays(GL_TRIANGLES, 0, 3);
+			}
+
+			glm::mat4 transform;
+			transform = glm::translate(transform, glm::vec3(-0.80f + (j * 0.4f), 0.80f - (i * 0.4f), 0.0f));
+
+			if (type == 0) transform = glm::rotate(transform, glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+			transform = glm::scale(transform, glm::vec3(0.2f, 0.2f, 0.2f));
+			transform = glm::translate(transform, glm::vec3(0.0f, 0.0f, 0.0f));
+			glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(transform));
+			glBindVertexArray(vao[1]);
+			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		}
+	}
 	
 	glBindVertexArray(0);
 	glutSwapBuffers();
@@ -164,8 +195,8 @@ void setupShaders()
 	if (!setupShaders("shaders/vertex.vert", "shaders/fragment.frag", shaderProgram))
 		exit(3);
 
-	vertexLoc = glGetUniformLocation(shaderProgram, "vPosition");
-	colorLoc = glGetUniformLocation(shaderProgram, "vColor");
+	vertexLoc = glGetAttribLocation(shaderProgram, "vPosition");
+	colorLoc = glGetAttribLocation(shaderProgram, "vColor");
 }
 
 /*------------------------------------------------------------------------------------------
@@ -173,6 +204,43 @@ void setupShaders()
 **------------------------------------------------------------------------------------------*/
 void setupBuffers()
 {
-	
+	glGenVertexArrays(2, vao);
+	glGenBuffers(2, buffers);
+	int space = 8 * sizeof(float);
+
+	float triangle[] = 
+	{
+		0.0f, 0.25f, 0.0f, 1.0f, 0.0f, 0.2f, 0.5f, 1.0f,
+		-0.25f, -0.25f, 0.0f, 1.0f, 0.0f, 0.2f, 0.5f, 1.0f,
+		0.25f, -0.25f, 0.0f, 1.0f, 0.0f, 0.2f, 0.5f, 1.0f,
+	};
+
+	glBindVertexArray(vao[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(triangle), triangle, GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(vertexLoc);
+	glVertexAttribPointer(vertexLoc, 4, GL_FLOAT, GL_FALSE, space, 0);
+	glEnableVertexAttribArray(colorLoc);
+	glVertexAttribPointer(colorLoc, 4, GL_FLOAT, GL_FALSE, space, (void*)(4 * sizeof(float)));
+
+	float square[] = 
+	{
+		-0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f,
+		-0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f,
+		0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f,
+		0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f
+	};
+
+	glBindVertexArray(vao[1]);
+	glBindBuffer(GL_ARRAY_BUFFER, buffers[1]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(square), square, GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(vertexLoc);
+	glVertexAttribPointer(vertexLoc, 4, GL_FLOAT, GL_FALSE, space, 0); 
+	glEnableVertexAttribArray(colorLoc);
+	glVertexAttribPointer(colorLoc, 4, GL_FLOAT, GL_FALSE, space, (void*)(4 * sizeof(float)));
+
+	glBindVertexArray(0);
 }
 
