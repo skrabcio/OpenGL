@@ -1,53 +1,71 @@
 #include <GL/glew.h>
 #include <GL/freeglut.h>
+#include <glm/glm.hpp>
+#include <glm/ext.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include <iostream>
-#include <vector>
 
 #include "shaders.h"
+#include <vector>
+using namespace std;
 
-const int WIDTH = 512; // szerokosc okna
-const int HEIGHT = 512; // wysokosc okna
-const int VAOS = 2; // liczba VAO
-const int VBOS = 3; // liczba VBO
+const int WIDTH = 768;
+const int HEIGHT = 576;
+const float ROT_STEP = 10.0f;
+
 
 void onShutdown();
+void printStatus();
 void initGL();
+void changeSize(GLsizei w, GLsizei h);
+void updateProjectionMatrix();
 void renderScene();
+void keyboard(unsigned char key, int x, int y);
+void specialKeys(int key, int x, int y);
 void setupShaders();
 void setupBuffers();
+void importModel();
 
 //******************************************************************************************
 GLuint shaderProgram; // identyfikator programu cieniowania
 
-GLuint vertexLoc; // lokalizacja atrybutu wierzcholka - wspolrzedne
-GLuint colorLoc; // lokalizacja atrybutu wierzcholka - kolor
+GLuint vertexLoc; // lokalizacja atrybutu wierzcholka - wspolrzedne wierzcholka
 
-GLuint vao[VAOS]; // identyfikatory VAO
-GLuint buffers[VBOS]; // identyfikatory VBO
-					  //******************************************************************************************
+GLuint projMatrixLoc; // lokalizacja zmiennej jednorodnej - macierz projekcji
+GLuint mvMatrixLoc; // lokalizacja zmiennej jednorodnej - macierz model-widok
 
-					  /*------------------------------------------------------------------------------------------
-					  ** funkcja glowna
-					  **------------------------------------------------------------------------------------------*/
+glm::mat4 projMatrix; // macierz projekcji
+glm::mat4 mvMatrix; // macierz model-widok
+
+bool wireframe = true; // czy rysowac siatke (true) czy wypelnienie (false)
+glm::vec3 rotationAngles = glm::vec3(0.0, 0.0, 0.0); // katy rotacji wokol poszczegolnych osi
+float fovy = 45.0f; // kat patrzenia (uzywany do skalowania sceny)
+float aspectRatio = (float)WIDTH / HEIGHT;
+
+unsigned int renderElements = 0; // liczba elementow do wyrysowania
+								 //******************************************************************************************
+
+								 /*------------------------------------------------------------------------------------------
+								 ** funkcja glowna
+								 **------------------------------------------------------------------------------------------*/
 int main(int argc, char *argv[])
 {
-	// rejestracja funkcji wykonywanej przy wyjsciu
 	atexit(onShutdown);
 
 	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
 
-	glutInitContextVersion(3, 1); // inicjacja wersji kontekstu
+	glutInitContextVersion(3, 1);
 	glutInitContextFlags(GLUT_DEBUG);
-	glutInitContextProfile(GLUT_CORE_PROFILE); // incicjacja profilu rdzennego
+	glutInitContextProfile(GLUT_CORE_PROFILE);
 
 	glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 
 	glutInitWindowPosition(0, 0);
 	glutInitWindowSize(WIDTH, HEIGHT);
-	glutCreateWindow("OpenGL - Core Profile");
+	glutCreateWindow("OpenGL (Core Profile) - Transformations");
 
-	// inicjacja GLEW
 	glewExperimental = GL_TRUE;
 	GLenum err = glewInit();
 	if (err != GLEW_OK)
@@ -62,7 +80,11 @@ int main(int argc, char *argv[])
 		exit(2);
 	}
 
+	glutReshapeFunc(changeSize);
 	glutDisplayFunc(renderScene);
+
+	glutKeyboardFunc(keyboard);
+	glutSpecialFunc(specialKeys);
 
 	initGL();
 
@@ -76,9 +98,19 @@ int main(int argc, char *argv[])
 **------------------------------------------------------------------------------------------*/
 void onShutdown()
 {
-	glDeleteBuffers(VBOS, buffers);  // usuniecie VBO
-	glDeleteVertexArrays(VAOS, vao); // usuiecie VAO
-	glDeleteProgram(shaderProgram); // usuniecie programu cieniowania
+	glDeleteProgram(shaderProgram);
+}
+
+/*------------------------------------------------------------------------------------------
+** funkcja wypisujaca podstawowe informacje o ustawieniach programu
+**------------------------------------------------------------------------------------------*/
+void printStatus()
+{
+	std::cout << "GLEW = " << glewGetString(GLEW_VERSION) << std::endl;
+	std::cout << "GL_VENDOR = " << glGetString(GL_VENDOR) << std::endl;
+	std::cout << "GL_RENDERER = " << glGetString(GL_RENDERER) << std::endl;
+	std::cout << "GL_VERSION = " << glGetString(GL_VERSION) << std::endl;
+	std::cout << "GLSL = " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl << std::endl;
 }
 
 /*------------------------------------------------------------------------------------------
@@ -86,17 +118,38 @@ void onShutdown()
 **------------------------------------------------------------------------------------------*/
 void initGL()
 {
-	std::cout << "GLEW = " << glewGetString(GLEW_VERSION) << std::endl;
-	std::cout << "GL_VENDOR = " << glGetString(GL_VENDOR) << std::endl;
-	std::cout << "GL_RENDERER = " << glGetString(GL_RENDERER) << std::endl;
-	std::cout << "GL_VERSION = " << glGetString(GL_VERSION) << std::endl;
-	std::cout << "GLSL = " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
-
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // kolor uzywany do czyszczenia bufora koloru
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glEnable(GL_DEPTH_TEST);
 
 	setupShaders();
 
-	setupBuffers();
+	importModel();
+
+	printStatus();
+}
+
+/*------------------------------------------------------------------------------------------
+** funkcja wywolywana przy zmianie rozmiaru okna
+** w - aktualna szerokosc okna
+** h - aktualna wysokosc okna
+**------------------------------------------------------------------------------------------*/
+void changeSize(GLsizei w, GLsizei h)
+{
+	if (h == 0)
+		h = 1;
+	glViewport(0, 0, w, h);
+
+	aspectRatio = (float)w / h;
+
+	updateProjectionMatrix();
+}
+
+/*------------------------------------------------------------------------------------------
+** funkcja aktualizuje macierz projekcji
+**------------------------------------------------------------------------------------------*/
+void updateProjectionMatrix()
+{
+	projMatrix = glm::perspective(glm::radians(fovy), aspectRatio, 0.1f, 100.0f);
 }
 
 /*------------------------------------------------------------------------------------------
@@ -104,21 +157,115 @@ void initGL()
 **------------------------------------------------------------------------------------------*/
 void renderScene()
 {
-	glClear(GL_COLOR_BUFFER_BIT); // czyszczenie bufora koloru
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	glUseProgram(shaderProgram); // wlaczenie programu cieniowania
+	mvMatrix = glm::lookAt(glm::vec3(0, 0, 8), glm::vec3(0, 0, -1), glm::vec3(0, 1, 0));
 
-								 // wyrysowanie pierwszego VAO (trojkat)
-	glBindVertexArray(vao[0]);
-	glDrawArrays(GL_TRIANGLES, 0, 3);
+	glUseProgram(shaderProgram);
+	glUniformMatrix4fv(projMatrixLoc, 1, GL_FALSE, glm::value_ptr(projMatrix));
 
-	// wyrysowanie dugiego VAO (kwadrat)
-	glBindVertexArray(vao[1]);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	if (wireframe)
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	else
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-	glBindVertexArray(0);
+	mvMatrix *= glm::rotate(glm::radians(rotationAngles.z), glm::vec3(0.0f, 0.0f, 1.0f));
+	mvMatrix *= glm::rotate(glm::radians(rotationAngles.y), glm::vec3(0.0f, 1.0f, 0.0f));
+	mvMatrix *= glm::rotate(glm::radians(rotationAngles.x), glm::vec3(1.0f, 0.0f, 0.0f));
+
+	glUniformMatrix4fv(mvMatrixLoc, 1, GL_FALSE, glm::value_ptr(mvMatrix));
 
 	glutSwapBuffers();
+}
+
+/*------------------------------------------------------------------------------------------
+** funkcja obslugujaca klawiature (klawiesze ASCII)
+** key - nacisniety klawisz
+** x, y - wspolrzedne kursora myszki w momencie nacisniecia klawisza key na klawiaturze
+**------------------------------------------------------------------------------------------*/
+void keyboard(unsigned char key, int x, int y)
+{
+	switch (key)
+	{
+	case 27: // ESC
+		exit(0);
+		break;
+
+	case 'a':
+		rotationAngles.x -= ROT_STEP;
+		if (rotationAngles.x < 0.0f)
+			rotationAngles.x += 360.0f;
+		break;
+
+	case 'd':
+		rotationAngles.x += ROT_STEP;
+		if (rotationAngles.x > 360.0f)
+			rotationAngles.x -= 360.0f;
+		break;
+
+	case 's':
+		rotationAngles.y -= ROT_STEP;
+		if (rotationAngles.y < 0.0f)
+			rotationAngles.y += 360.0f;
+		break;
+
+	case 'w':
+		rotationAngles.y += ROT_STEP;
+		if (rotationAngles.y > 360.0f)
+			rotationAngles.y -= 360.0f;
+		break;
+
+	case 'z':
+		rotationAngles.z -= ROT_STEP;
+		if (rotationAngles.z < 0.0f)
+			rotationAngles.z += 360.f;
+		break;
+
+	case 'q':
+		rotationAngles.z += ROT_STEP;
+		if (rotationAngles.z > 360.0f)
+			rotationAngles.z -= 360.0f;
+		break;
+
+	case '+':
+	case '=':
+		fovy /= 1.1;
+		updateProjectionMatrix();
+		break;
+
+	case '-':
+		if (1.1f * fovy < 180.0f)
+		{
+			fovy *= 1.1;
+			updateProjectionMatrix();
+		}
+		break;
+
+	
+	}
+	glutPostRedisplay();
+}
+
+/*------------------------------------------------------------------------------------------
+** funkcja obslugujaca klawiature (klawisze specjalne)
+** key - nacisniety klawisz
+** x, y - wspolrzedne kursora myszki w momencie nacisniecia klawisza key na klawiaturze
+**------------------------------------------------------------------------------------------*/
+void specialKeys(int key, int x, int y)
+{
+	switch (key)
+	{
+	case GLUT_KEY_F1:
+		wireframe = !wireframe;
+		break;
+
+	case GLUT_KEY_F4:
+		if (glutGetModifiers() == GLUT_ACTIVE_ALT)
+			exit(0);
+		break;
+	}
+
+	glutPostRedisplay();
 }
 
 /*------------------------------------------------------------------------------------------
@@ -129,76 +276,15 @@ void setupShaders()
 	if (!setupShaders("shaders/vertex.vert", "shaders/fragment.frag", shaderProgram))
 		exit(3);
 
-	vertexLoc = glGetAttribLocation(shaderProgram, "vPosition");
-	colorLoc = glGetAttribLocation(shaderProgram, "vColor");
+	projMatrixLoc = glGetUniformLocation(shaderProgram, "projectionMatrix");
+	mvMatrixLoc = glGetUniformLocation(shaderProgram, "modelViewMatrix");
 }
 
 /*------------------------------------------------------------------------------------------
-** funkcja inicjujaca VAO oraz zawarte w nim VBO z danymi o trojkacie
+** funkcja tworzaca VAO i VBO z czajniczkiem
 **------------------------------------------------------------------------------------------*/
 void setupBuffers()
 {
-	glGenVertexArrays(2, vao); // generowanie identyfikatora VAO
-	glGenBuffers(3, buffers); // generowanie identyfikatorow VBO
-
-							  // wspolrzedne wierzcholkow trojkata
-	float vertices[] =
-	{
-		0.1f, 0.0f, 0.0f, 1.0f,
-		0.9f, -0.5f, 0.0f, 1.0f,
-		0.9f, 0.5f, 0.0f, 1.0f
-	};
-
-	// kolory wierzchokow trojkata
-	std::vector<float> colors;
-	colors.push_back(1.0f);
-	colors.push_back(0.0f);
-	colors.push_back(0.0f);
-	colors.push_back(1.0f);
-
-	colors.push_back(0.0f);
-	colors.push_back(1.0f);
-	colors.push_back(0.0f);
-	colors.push_back(1.0f);
-
-	colors.push_back(0.0f);
-	colors.push_back(0.0f);
-	colors.push_back(1.0f);
-	colors.push_back(1.0f);
-
-	glBindVertexArray(vao[0]); // dowiazanie pierwszego VAO    	
-
-							   // VBO dla wspolrzednych wierzcholkow
-	glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(vertexLoc); // wlaczenie tablicy atrybutu wierzcholka - wspolrzedne
-	glVertexAttribPointer(vertexLoc, 4, GL_FLOAT, GL_FALSE, 0, 0); // zdefiniowanie danych tablicy atrybutu wierzchoka - wspolrzedne
-
-																   // VBO dla kolorow
-	glBindBuffer(GL_ARRAY_BUFFER, buffers[1]);
-	glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(float), reinterpret_cast<GLfloat *>(&colors[0]), GL_STATIC_DRAW);
-	glEnableVertexAttribArray(colorLoc); // wlaczenie tablicy atrybutu wierzcholka - kolory
-	glVertexAttribPointer(colorLoc, 4, GL_FLOAT, GL_FALSE, 0, 0); // zdefiniowanie danych tablicy atrybutu wierzcholka - kolory
-
-																  // wspolrzedne i kolory kwadratu (x, y, z, w, r, g, b, a)
-	float verticesAndColors[] =
-	{
-		-0.9f, 0.4f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
-		-0.9f, -0.4f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f,
-		-0.1f, 0.4f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f,
-		-0.1f, -0.4f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f
-	};
-
-	glBindVertexArray(vao[1]);
-	// VBO dla wspolrzednych i kolorow
-	glBindBuffer(GL_ARRAY_BUFFER, buffers[2]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(verticesAndColors), verticesAndColors, GL_STATIC_DRAW);
-
-	int stride = 8 * sizeof(float);
-	glEnableVertexAttribArray(vertexLoc);
-	glVertexAttribPointer(vertexLoc, 4, GL_FLOAT, GL_FALSE, stride, 0); // wspolrzedne wierzcholkow
-	glEnableVertexAttribArray(colorLoc);
-	glVertexAttribPointer(colorLoc, 4, GL_FLOAT, GL_FALSE, stride, (void*)(4 * sizeof(float))); // kolory wierzcholkow
-
-	glBindVertexArray(0);
+	
 }
+
