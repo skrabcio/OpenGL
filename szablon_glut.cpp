@@ -14,6 +14,9 @@ using namespace std;
 const int WIDTH = 768;
 const int HEIGHT = 576;
 const float ROT_STEP = 10.0f;
+const int shaders = 2;
+
+enum Shader {Gouraud, Phong};
 
 Model *model;
 
@@ -30,7 +33,7 @@ void setupBuffers();
 void importModel();
 
 //******************************************************************************************
-GLuint shaderProgram; // identyfikator programu cieniowania
+GLuint shaderProgram[shaders]; // identyfikator programu cieniowania
 
 GLuint vertexLoc; // lokalizacja atrybutu wierzcholka - wspolrzedne wierzcholka
 GLuint colorLoc; // lokalizacja zmiennej jednorodnej zawieraj¹cej kolor
@@ -71,6 +74,7 @@ bool wireframe = false; // czy rysowac siatke (true) czy wypelnienie (false)
 glm::vec3 rotationAngles = glm::vec3(0.0, 0.0, 0.0); // katy rotacji wokol poszczegolnych osi
 float aspectRatio = (float)WIDTH / HEIGHT;
 glm::vec3 scaleModel = glm::vec3(1.0, 1.0, 1.0); //zmienna zawieraj¹ca stopieñ skalowania 
+Shader shader = Phong;
 
 unsigned int renderElements = 0; // liczba elementow do wyrysowania
 								 //******************************************************************************************
@@ -127,7 +131,8 @@ int main(int argc, char *argv[])
 **------------------------------------------------------------------------------------------*/
 void onShutdown()
 {
-	glDeleteProgram(shaderProgram);
+	glDeleteProgram(shaderProgram[1]);
+	glDeleteProgram(shaderProgram[2]);
 }
 
 /*------------------------------------------------------------------------------------------
@@ -190,7 +195,7 @@ void renderScene()
 
 	mvMatrix = glm::lookAt(glm::vec3(0, 0, 8), glm::vec3(0, 0, -1), glm::vec3(0, 1, 0));
 
-	glUseProgram(shaderProgram);
+	glUseProgram(shaderProgram[shader]);
 	glUniformMatrix4fv(projMatrixLoc, 1, GL_FALSE, glm::value_ptr(projMatrix));
 
 	glUniform3fv(lightAmbientLoc, 1, glm::value_ptr(lightAmbient));
@@ -281,6 +286,15 @@ void keyboard(unsigned char key, int x, int y)
 			scaleModel -= 0.1;
 		updateProjectionMatrix();
 		break;
+	case '1':
+		shader = Gouraud;
+		setupShaders();
+		break;
+
+	case '2':
+		shader = Phong;
+		setupShaders();
+		break;
 
 
 	}
@@ -314,23 +328,25 @@ void specialKeys(int key, int x, int y)
 **------------------------------------------------------------------------------------------*/
 void setupShaders()
 {
-	if (!setupShaders("shaders/vertex.vert", "shaders/fragment.frag", shaderProgram))
+	if (!setupShaders("shaders/Gouraud.vert", "shaders/Gouraud.frag", shaderProgram[Gouraud]))
+		exit(3);
+	if (!setupShaders("shaders/Phong.vert", "shaders/Phong.frag", shaderProgram[Phong]))
 		exit(3);
 
-	projMatrixLoc = glGetUniformLocation(shaderProgram, "projectionMatrix");
-	mvMatrixLoc = glGetUniformLocation(shaderProgram, "modelViewMatrix");
-	normalMatrixLoc = glGetUniformLocation(shaderProgram, "normalMatrix");
+	projMatrixLoc = glGetUniformLocation(shaderProgram[shader], "projectionMatrix");
+	mvMatrixLoc = glGetUniformLocation(shaderProgram[shader], "modelViewMatrix");
+	normalMatrixLoc = glGetUniformLocation(shaderProgram[shader], "normalMatrix");
 
-	lightAmbientLoc = glGetUniformLocation(shaderProgram, "lightAmbient");
-	matAmbientLoc = glGetUniformLocation(shaderProgram, "matAmbient");
+	lightAmbientLoc = glGetUniformLocation(shaderProgram[shader], "lightAmbient");
+	matAmbientLoc = glGetUniformLocation(shaderProgram[shader], "matAmbient");
 
-	lightPositionLoc = glGetUniformLocation(shaderProgram, "lightPosition");
-	lightDiffuseLoc = glGetUniformLocation(shaderProgram, "lightDiffuse");
-	matDiffuseLoc = glGetUniformLocation(shaderProgram, "matDiffuse");
+	lightPositionLoc = glGetUniformLocation(shaderProgram[shader], "lightPosition");
+	lightDiffuseLoc = glGetUniformLocation(shaderProgram[shader], "lightDiffuse");
+	matDiffuseLoc = glGetUniformLocation(shaderProgram[shader], "matDiffuse");
 
-	lightSpecularLoc = glGetUniformLocation(shaderProgram, "lightSpecular");
-	matSpecularLoc = glGetUniformLocation(shaderProgram, "matSpecular");
-	matShineLoc = glGetUniformLocation(shaderProgram, "matShine");
+	lightSpecularLoc = glGetUniformLocation(shaderProgram[shader], "lightSpecular");
+	matSpecularLoc = glGetUniformLocation(shaderProgram[shader], "matSpecular");
+	matShineLoc = glGetUniformLocation(shaderProgram[shader], "matShine");
 }
 
 /*------------------------------------------------------------------------------------------

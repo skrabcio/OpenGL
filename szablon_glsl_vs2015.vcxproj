@@ -155,8 +155,10 @@
     <ClInclude Include="shaders.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="run_files\shaders\fragment.frag" />
-    <None Include="run_files\shaders\vertex.vert" />
+    <None Include="run_files\shaders\Gouraud.frag" />
+    <None Include="run_files\shaders\Gouraud.vert" />
+    <None Include="run_files\shaders\Phong.frag" />
+    <None Include="run_files\shaders\Phong.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
