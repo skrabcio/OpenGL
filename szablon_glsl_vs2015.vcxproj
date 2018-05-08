@@ -79,7 +79,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>./lib/x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glew32.lib;DevIL.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>assimp-vc140-mt.lib;glew32.lib;DevIL.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
     </Link>
     <PostBuildEvent>
@@ -146,10 +146,12 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Model.cpp" />
     <ClCompile Include="shaders.cpp" />
     <ClCompile Include="szablon_glut.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Model.h" />
     <ClInclude Include="shaders.h" />
   </ItemGroup>
   <ItemGroup>

@@ -7,6 +7,7 @@
 #include <iostream>
 
 #include "shaders.h"
+#include "Model.h"
 #include <vector>
 using namespace std;
 
@@ -14,6 +15,7 @@ const int WIDTH = 768;
 const int HEIGHT = 576;
 const float ROT_STEP = 10.0f;
 
+Model *model;
 
 void onShutdown();
 void printStatus();
@@ -31,17 +33,44 @@ void importModel();
 GLuint shaderProgram; // identyfikator programu cieniowania
 
 GLuint vertexLoc; // lokalizacja atrybutu wierzcholka - wspolrzedne wierzcholka
+GLuint colorLoc; // lokalizacja zmiennej jednorodnej zawieraj¹cej kolor
+GLuint normalLoc; // lokalizacja zmiennych normalnych
+
 
 GLuint projMatrixLoc; // lokalizacja zmiennej jednorodnej - macierz projekcji
 GLuint mvMatrixLoc; // lokalizacja zmiennej jednorodnej - macierz model-widok
+GLuint normalMatrixLoc; // lokalizacja zmiennej jednorodnej zawierajacej macierz normali
+
+GLuint lightAmbientLoc; // lokalizacja zmiennej jednorodnej ambientu œwiat³a
+GLuint matAmbientLoc; // lokalizacja  zmiennej jednorodnej ambientu materia³u
+
+GLuint lightPositionLoc; // lokalizacja zmiennej jednorodnej pozycji œwiat³a
+GLuint lightDiffuseLoc; // lokalizacja zmiennej jednorodnej diffuse œwiat³a
+GLuint matDiffuseLoc; // lokalizacja zmiennej jednorodnej diffuse materia³u
+
+GLuint lightSpecularLoc; // lokalizacja zmiennej jednorodnej speculara œwiat³a
+GLuint matSpecularLoc; // lokalizacja zmiennej jednorodnej speculara materia³u
+GLuint matShineLoc; // lokalizacja zmiennej jednorodnej po³ysku materia³u
+
+// parametry œwwiat³a
+glm::vec4 lightPosition = glm::vec4(0.0f, 0.0f, 10.0f, 1.0f);
+glm::vec3 lightAmbient = glm::vec3(0.2f, 0.2f, 0.2f);
+glm::vec3 lightDiffuse = glm::vec3(1.0f, 1.0f, 1.0f);
+glm::vec3 lightSpecular = glm::vec3(1.0, 1.0, 1.0);
+
+//parametry materia³u
+glm::vec3 matAmbient = glm::vec3(0.0215f, 0.1745f, 0.0215f);
+glm::vec3 matDiffuse = glm::vec3(0.07568f, 0.61424f, 0.07568f);
+glm::vec3 matSpecular = glm::vec3(0.633f, 0.727811f, 0.633f);
+float matShine = 83.2f;
 
 glm::mat4 projMatrix; // macierz projekcji
 glm::mat4 mvMatrix; // macierz model-widok
 
-bool wireframe = true; // czy rysowac siatke (true) czy wypelnienie (false)
+bool wireframe = false; // czy rysowac siatke (true) czy wypelnienie (false)
 glm::vec3 rotationAngles = glm::vec3(0.0, 0.0, 0.0); // katy rotacji wokol poszczegolnych osi
-float fovy = 45.0f; // kat patrzenia (uzywany do skalowania sceny)
 float aspectRatio = (float)WIDTH / HEIGHT;
+glm::vec3 scaleModel = glm::vec3(1.0, 1.0, 1.0); //zmienna zawieraj¹ca stopieñ skalowania 
 
 unsigned int renderElements = 0; // liczba elementow do wyrysowania
 								 //******************************************************************************************
@@ -149,7 +178,7 @@ void changeSize(GLsizei w, GLsizei h)
 **------------------------------------------------------------------------------------------*/
 void updateProjectionMatrix()
 {
-	projMatrix = glm::perspective(glm::radians(fovy), aspectRatio, 0.1f, 100.0f);
+	projMatrix = glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 100.0f);
 }
 
 /*------------------------------------------------------------------------------------------
@@ -164,17 +193,31 @@ void renderScene()
 	glUseProgram(shaderProgram);
 	glUniformMatrix4fv(projMatrixLoc, 1, GL_FALSE, glm::value_ptr(projMatrix));
 
+	glUniform3fv(lightAmbientLoc, 1, glm::value_ptr(lightAmbient));
+	glUniform3fv(matAmbientLoc, 1, glm::value_ptr(matAmbient));
+
+	glUniform3fv(lightDiffuseLoc, 1, glm::value_ptr(lightDiffuse));
+	glUniform3fv(matDiffuseLoc, 1, glm::value_ptr(matDiffuse));
+
+	glUniform3fv(lightSpecularLoc, 1, glm::value_ptr(lightSpecular));
+	glUniform3fv(matSpecularLoc, 1, glm::value_ptr(matSpecular));
+	glUniform1f(matShineLoc, matShine);
+
+
 	if (wireframe)
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	else
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
+	mvMatrix *= glm::scale(scaleModel);
 	mvMatrix *= glm::rotate(glm::radians(rotationAngles.z), glm::vec3(0.0f, 0.0f, 1.0f));
 	mvMatrix *= glm::rotate(glm::radians(rotationAngles.y), glm::vec3(0.0f, 1.0f, 0.0f));
 	mvMatrix *= glm::rotate(glm::radians(rotationAngles.x), glm::vec3(1.0f, 0.0f, 0.0f));
 
 	glUniformMatrix4fv(mvMatrixLoc, 1, GL_FALSE, glm::value_ptr(mvMatrix));
+	glm::mat3 normalMatrix = glm::inverseTranspose(glm::mat3(mvMatrix));
 
+	glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
+	model->render();
 	glutSwapBuffers();
 }
 
@@ -228,20 +271,18 @@ void keyboard(unsigned char key, int x, int y)
 		break;
 
 	case '+':
-	case '=':
-		fovy /= 1.1;
+	case '=': //skalowanie modelu w górê
+		scaleModel += 0.1;
 		updateProjectionMatrix();
 		break;
 
-	case '-':
-		if (1.1f * fovy < 180.0f)
-		{
-			fovy *= 1.1;
-			updateProjectionMatrix();
-		}
+	case '-': // skalowanie modelu w dó³
+		if (scaleModel.x > 0.1f)
+			scaleModel -= 0.1;
+		updateProjectionMatrix();
 		break;
 
-	
+
 	}
 	glutPostRedisplay();
 }
@@ -278,13 +319,24 @@ void setupShaders()
 
 	projMatrixLoc = glGetUniformLocation(shaderProgram, "projectionMatrix");
 	mvMatrixLoc = glGetUniformLocation(shaderProgram, "modelViewMatrix");
+	normalMatrixLoc = glGetUniformLocation(shaderProgram, "normalMatrix");
+
+	lightAmbientLoc = glGetUniformLocation(shaderProgram, "lightAmbient");
+	matAmbientLoc = glGetUniformLocation(shaderProgram, "matAmbient");
+
+	lightPositionLoc = glGetUniformLocation(shaderProgram, "lightPosition");
+	lightDiffuseLoc = glGetUniformLocation(shaderProgram, "lightDiffuse");
+	matDiffuseLoc = glGetUniformLocation(shaderProgram, "matDiffuse");
+
+	lightSpecularLoc = glGetUniformLocation(shaderProgram, "lightSpecular");
+	matSpecularLoc = glGetUniformLocation(shaderProgram, "matSpecular");
+	matShineLoc = glGetUniformLocation(shaderProgram, "matShine");
 }
 
 /*------------------------------------------------------------------------------------------
 ** funkcja tworzaca VAO i VBO z czajniczkiem
 **------------------------------------------------------------------------------------------*/
-void setupBuffers()
+void importModel()
 {
-	
+	model = new Model(".\\models\\cow.obj");
 }
-
