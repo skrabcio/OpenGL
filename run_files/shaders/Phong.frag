@@ -28,12 +28,13 @@ void main()
 	vec3 ambient = lightAmbient * matAmbient;
 	vec3 specular = vec3(0.0, 0.0, 0.0);
 	vec3 diffuse = lightDiffuse * matDiffuse * max(dot(light, norm), 0.0);
+	vec3 Vec = normalize(light + view);
 
 	// obliczenie refleksów œwiat³a
 	if(dot(light, view) > 0.0)
 	{
 		vec3 refl = reflect(vec3(0.0, 0.0, 0.0) - light, norm);
-		specular = pow(max(0.0, dot(view, refl)), matShine) * matSpecular * lightSpecular;
+		specular = lightSpecular * matSpecular * exp(-matShine*(1-pow(dot(norm, Vec), 2))/pow(dot(norm, Vec), 2));
 	}
 
 	// konwersja na zmienn¹ wyjœciow¹ 
