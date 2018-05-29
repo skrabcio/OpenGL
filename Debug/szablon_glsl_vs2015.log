@@ -1,5 +1,11 @@
-﻿  szablon_glut.cpp
-c:\users\admin\documents\opengl\model.h(17): warning C4091: "static ": zignorowano na lewo od "Model::Poly::BUFFERS" podczas gdy brak deklaracji zmiennej
+﻿  Model.cpp
+c:\users\admin\documents\opengl\model.h(16): warning C4091: "static ": zignorowano na lewo od "Model::BUFFERS" podczas gdy brak deklaracji zmiennej
+c:\users\admin\documents\opengl\model.cpp(62): warning C4018: "<": niezgodność typu ze znakiem/bez znaku
+  shaders.cpp
+c:\users\admin\documents\opengl\shaders.cpp(24): warning C4244: "inicjowanie": konwersja z "std::streamoff" do "unsigned long", możliwa utrata danych
+  szablon_glut.cpp
+c:\users\admin\documents\opengl\model.h(16): warning C4091: "static ": zignorowano na lewo od "Model::BUFFERS" podczas gdy brak deklaracji zmiennej
+  Generowanie kodu...
   szablon_glsl_vs2015.vcxproj -> C:\Users\Admin\Documents\OpenGL\Debug\szablon_glsl_vs2015.exe
   C:\Users\Admin\Documents\OpenGL\dlls\x86\assimp-vc140-mt.dll
   C:\Users\Admin\Documents\OpenGL\dlls\x86\DevIL.dll

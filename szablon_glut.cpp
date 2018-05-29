@@ -14,8 +14,10 @@ using namespace std;
 const int WIDTH = 768;
 const int HEIGHT = 576;
 const float ROT_STEP = 10.0f;
+const int NUM_SHADERS = 2;	
 
 Model *model;
+Model::Shader shader = Model::NonTextured;
 
 void onShutdown();
 void printStatus();
@@ -30,7 +32,7 @@ void setupBuffers();
 void importModel();
 
 //******************************************************************************************
-GLuint shaderProgram; // identyfikator programu cieniowania
+GLuint shaderProgram[NUM_SHADERS]; // identyfikator programu cieniowania
 
 GLuint vertexLoc; // lokalizacja atrybutu wierzcholka - wspolrzedne wierzcholka
 GLuint colorLoc; // lokalizacja zmiennej jednorodnej zawieraj¹cej kolor
@@ -62,7 +64,7 @@ glm::vec3 lightSpecular = glm::vec3(1.0, 1.0, 1.0);
 glm::vec3 matAmbient = glm::vec3(0.0215f, 0.1745f, 0.0215f);
 glm::vec3 matDiffuse = glm::vec3(0.07568f, 0.61424f, 0.07568f);
 glm::vec3 matSpecular = glm::vec3(0.633f, 0.727811f, 0.633f);
-float matShine = 83.2f;
+float matShine = 40.0f;
 
 glm::mat4 projMatrix; // macierz projekcji
 glm::mat4 mvMatrix; // macierz model-widok
@@ -72,6 +74,8 @@ glm::vec3 rotationAngles = glm::vec3(0.0, 0.0, 0.0); // katy rotacji wokol poszc
 float aspectRatio = (float)WIDTH / HEIGHT;
 glm::vec3 scaleModel = glm::vec3(1.0, 1.0, 1.0); //zmienna zawieraj¹ca stopieñ skalowania 
 
+GLuint texSamplerLoc;
+GLuint specSamplerLoc;
 unsigned int renderElements = 0; // liczba elementow do wyrysowania
 								 //******************************************************************************************
 
@@ -127,7 +131,8 @@ int main(int argc, char *argv[])
 **------------------------------------------------------------------------------------------*/
 void onShutdown()
 {
-	glDeleteProgram(shaderProgram);
+	glDeleteProgram(shaderProgram[0]);
+	glDeleteProgram(shaderProgram[1]);
 }
 
 /*------------------------------------------------------------------------------------------
@@ -147,13 +152,13 @@ void printStatus()
 **------------------------------------------------------------------------------------------*/
 void initGL()
 {
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClearColor(1.0f, 0.5f, 0.3f, 1.0f);
 	glEnable(GL_DEPTH_TEST);
 
-	setupShaders();
+	
 
 	importModel();
-
+	setupShaders();
 	printStatus();
 }
 
@@ -190,7 +195,7 @@ void renderScene()
 
 	mvMatrix = glm::lookAt(glm::vec3(0, 0, 8), glm::vec3(0, 0, -1), glm::vec3(0, 1, 0));
 
-	glUseProgram(shaderProgram);
+	glUseProgram(shaderProgram[shader]);
 	glUniformMatrix4fv(projMatrixLoc, 1, GL_FALSE, glm::value_ptr(projMatrix));
 
 	glUniform3fv(lightAmbientLoc, 1, glm::value_ptr(lightAmbient));
@@ -234,25 +239,25 @@ void keyboard(unsigned char key, int x, int y)
 		exit(0);
 		break;
 
-	case 'a':
+	case 'w':
 		rotationAngles.x -= ROT_STEP;
 		if (rotationAngles.x < 0.0f)
 			rotationAngles.x += 360.0f;
 		break;
 
-	case 'd':
+	case 's':
 		rotationAngles.x += ROT_STEP;
 		if (rotationAngles.x > 360.0f)
 			rotationAngles.x -= 360.0f;
 		break;
 
-	case 's':
+	case 'a':
 		rotationAngles.y -= ROT_STEP;
 		if (rotationAngles.y < 0.0f)
 			rotationAngles.y += 360.0f;
 		break;
 
-	case 'w':
+	case 'd':
 		rotationAngles.y += ROT_STEP;
 		if (rotationAngles.y > 360.0f)
 			rotationAngles.y -= 360.0f;
@@ -280,6 +285,11 @@ void keyboard(unsigned char key, int x, int y)
 		if (scaleModel.x > 0.1f)
 			scaleModel -= 0.1;
 		updateProjectionMatrix();
+		break;
+
+	case 't':
+		shader = (Model::Shader)abs(shader - 1);
+		setupShaders();
 		break;
 
 
@@ -314,23 +324,25 @@ void specialKeys(int key, int x, int y)
 **------------------------------------------------------------------------------------------*/
 void setupShaders()
 {
-	if (!setupShaders("shaders/vertex.vert", "shaders/fragment.frag", shaderProgram))
+	if (!setupShaders("shaders/vertex.vert", "shaders/fragment.frag", shaderProgram[Model::NonTextured]))
+		exit(3);
+	if (!setupShaders("shaders/textured.vert", "shaders/textured.frag", shaderProgram[Model::Textured]))
 		exit(3);
 
-	projMatrixLoc = glGetUniformLocation(shaderProgram, "projectionMatrix");
-	mvMatrixLoc = glGetUniformLocation(shaderProgram, "modelViewMatrix");
-	normalMatrixLoc = glGetUniformLocation(shaderProgram, "normalMatrix");
+	projMatrixLoc = glGetUniformLocation(shaderProgram[shader], "projectionMatrix");
+	mvMatrixLoc = glGetUniformLocation(shaderProgram[shader], "modelViewMatrix");
+	normalMatrixLoc = glGetUniformLocation(shaderProgram[shader], "normalMatrix");
 
-	lightAmbientLoc = glGetUniformLocation(shaderProgram, "lightAmbient");
-	matAmbientLoc = glGetUniformLocation(shaderProgram, "matAmbient");
+	lightAmbientLoc = glGetUniformLocation(shaderProgram[shader], "lightAmbient");
+	matAmbientLoc = glGetUniformLocation(shaderProgram[shader], "matAmbient");
 
-	lightPositionLoc = glGetUniformLocation(shaderProgram, "lightPosition");
-	lightDiffuseLoc = glGetUniformLocation(shaderProgram, "lightDiffuse");
-	matDiffuseLoc = glGetUniformLocation(shaderProgram, "matDiffuse");
+	lightPositionLoc = glGetUniformLocation(shaderProgram[shader], "lightPosition");
+	lightDiffuseLoc = glGetUniformLocation(shaderProgram[shader], "lightDiffuse");
+	matDiffuseLoc = glGetUniformLocation(shaderProgram[shader], "matDiffuse");
 
-	lightSpecularLoc = glGetUniformLocation(shaderProgram, "lightSpecular");
-	matSpecularLoc = glGetUniformLocation(shaderProgram, "matSpecular");
-	matShineLoc = glGetUniformLocation(shaderProgram, "matShine");
+	lightSpecularLoc = glGetUniformLocation(shaderProgram[shader], "lightSpecular");
+	matSpecularLoc = glGetUniformLocation(shaderProgram[shader], "matSpecular");
+	matShineLoc = glGetUniformLocation(shaderProgram[shader], "matShine");
 }
 
 /*------------------------------------------------------------------------------------------
@@ -338,5 +350,12 @@ void setupShaders()
 **------------------------------------------------------------------------------------------*/
 void importModel()
 {
-	model = new Model(".\\models\\cow.obj");
+	model = new Model(".\\models\\dragon.obj");
+
+	if (model->hasTextureCoords())
+	{
+		shader = Model::Textured;
+		model->setupShader(shaderProgram[shader], (const wchar_t*)(L"background.png"));
+	}
+
 }

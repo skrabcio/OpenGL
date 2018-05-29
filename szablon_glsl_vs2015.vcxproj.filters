@@ -44,5 +44,11 @@
     <None Include="run_files\shaders\fragment.frag">
       <Filter>shaders</Filter>
     </None>
+    <None Include="run_files\shaders\textured.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="run_files\shaders\textured.vert">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>
