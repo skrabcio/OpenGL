@@ -17,11 +17,11 @@ out vec3 color; // kolor
  
 void main()
 {
-	vec3 position = vec3( modelViewMatrix * vec4( vPosition, 1.0 ) );
-	vec3 normal = normalize( normalMatrix * vNormal );
-	vec3 light = normalize( vec3( lightPos ) );
-	float Normal_Light = max(dot(normal, light), 0.0);
+	vec3 position = vec3( modelViewMatrix * vec4( vPosition, 1.0 ) ); //wyliczenie pozycji
+	vec3 normal = normalize( normalMatrix * vNormal ); // wyliczenie normala
+	vec3 light = normalize( vec3( lightPos ) ); //wyliczenie œwiat³a
+	float Normal_Light = max(dot(normal, light), 0.0); // wyliczenie wyznacznika normal-œwiat³o
 
-	color = lightDiffuse * vColor * min(1,(Normal_Light + 0.4));
-    gl_Position = projectionMatrix * modelViewMatrix * vec4( vPosition, 1.0 );
+	color = lightDiffuse * vColor * min(1,(Normal_Light + 0.4)); // wyliczenie koloru
+    gl_Position = projectionMatrix * modelViewMatrix * vec4( vPosition, 1.0 ); //przekazanie wspó³rzêdnych wierzcholków
 }

@@ -35,7 +35,7 @@ void renderScene();
 void keyboard(unsigned char key, int x, int y);
 void specialKeys(int key, int x, int y);
 void setupShaders();
-void terrain();
+void terrain(); //funkcja generuj¹ca teren
 
 
 GLfloat heightMulti = 40;
