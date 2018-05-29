@@ -7,4 +7,6 @@ void printShaderInfoLog(GLuint shader);
 void printProgramInfoLog(GLuint program);
 bool setupShaders(std::string vertexShaderFilename, std::string fragmentShaderFilename, GLuint &shaderProgram);
 
+
+
 #endif /* __SHADERS_H__ */

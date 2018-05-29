@@ -1,0 +1,17 @@
+﻿  szablon_glut.cpp
+c:\users\admin\documents\opengl\szablon_glut.cpp(370): warning C4244: "argument": konwersja z "int" do "GLfloat", możliwa utrata danych
+c:\users\admin\documents\opengl\szablon_glut.cpp(371): warning C4244: "argument": konwersja z "int" do "GLfloat", możliwa utrata danych
+c:\users\admin\documents\opengl\szablon_glut.cpp(375): warning C4244: "inicjowanie": konwersja z "GLfloat" do "int", możliwa utrata danych
+  Trwa generowanie kodu
+  2 of 372 functions ( 0.5%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    1 functions had inline decision re-evaluated but remain unchanged
+  Zakończono generowanie kodu
+  szablon_glsl_vs2015.vcxproj -> C:\Users\Admin\Documents\OpenGL\Release\szablon_glsl_vs2015.exe
+  C:\Users\Admin\Documents\OpenGL\dlls\x86\assimp-vc140-mt.dll
+  C:\Users\Admin\Documents\OpenGL\dlls\x86\DevIL.dll
+  C:\Users\Admin\Documents\OpenGL\dlls\x86\freeglut.dll
+  C:\Users\Admin\Documents\OpenGL\dlls\x86\glew32.dll
+  C:\Users\Admin\Documents\OpenGL\dlls\x86\ILU.dll
+  C:\Users\Admin\Documents\OpenGL\dlls\x86\ILUT.dll
+  6 File(s) copied

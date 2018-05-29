@@ -3,11 +3,12 @@
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <IL/il.h>
 
 #include <iostream>
 
 #include "shaders.h"
-#include "Model.h"
+
 #include <vector>
 using namespace std;
 
@@ -15,7 +16,15 @@ const int WIDTH = 768;
 const int HEIGHT = 576;
 const float ROT_STEP = 10.0f;
 
-Model *model;
+// struktura danych obrazka
+struct ImageStat
+{
+	ILubyte* bytes;
+	int width;
+	int height;
+};
+
+ImageStat* Image(const wchar_t* filename);
 
 void onShutdown();
 void printStatus();
@@ -26,8 +35,13 @@ void renderScene();
 void keyboard(unsigned char key, int x, int y);
 void specialKeys(int key, int x, int y);
 void setupShaders();
-void setupBuffers();
-void importModel();
+void terrain();
+
+
+GLfloat heightMulti = 40;
+GLuint vao;
+GLuint vbo[4];
+GLuint elements;
 
 //******************************************************************************************
 GLuint shaderProgram; // identyfikator programu cieniowania
@@ -70,9 +84,8 @@ glm::mat4 mvMatrix; // macierz model-widok
 bool wireframe = false; // czy rysowac siatke (true) czy wypelnienie (false)
 glm::vec3 rotationAngles = glm::vec3(0.0, 0.0, 0.0); // katy rotacji wokol poszczegolnych osi
 float aspectRatio = (float)WIDTH / HEIGHT;
-glm::vec3 scaleModel = glm::vec3(1.0, 1.0, 1.0); //zmienna zawieraj¹ca stopieñ skalowania 
+glm::vec3 scaleModel = glm::vec3(0.03, 0.03, 0.03); //zmienna zawieraj¹ca stopieñ skalowania 
 
-unsigned int renderElements = 0; // liczba elementow do wyrysowania
 								 //******************************************************************************************
 
 								 /*------------------------------------------------------------------------------------------
@@ -151,8 +164,8 @@ void initGL()
 	glEnable(GL_DEPTH_TEST);
 
 	setupShaders();
-
-	importModel();
+	terrain();
+	
 
 	printStatus();
 }
@@ -217,7 +230,11 @@ void renderScene()
 	glm::mat3 normalMatrix = glm::inverseTranspose(glm::mat3(mvMatrix));
 
 	glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
-	model->render();
+	
+	glBindVertexArray(vao);
+	glDrawElements(GL_TRIANGLE_STRIP, elements, GL_UNSIGNED_INT, 0);
+	glBindVertexArray(0);
+
 	glutSwapBuffers();
 }
 
@@ -234,25 +251,25 @@ void keyboard(unsigned char key, int x, int y)
 		exit(0);
 		break;
 
-	case 'a':
+	case 'w':
 		rotationAngles.x -= ROT_STEP;
 		if (rotationAngles.x < 0.0f)
 			rotationAngles.x += 360.0f;
 		break;
 
-	case 'd':
+	case 's':
 		rotationAngles.x += ROT_STEP;
 		if (rotationAngles.x > 360.0f)
 			rotationAngles.x -= 360.0f;
 		break;
 
-	case 's':
+	case 'a':
 		rotationAngles.y -= ROT_STEP;
 		if (rotationAngles.y < 0.0f)
 			rotationAngles.y += 360.0f;
 		break;
 
-	case 'w':
+	case 'd':
 		rotationAngles.y += ROT_STEP;
 		if (rotationAngles.y > 360.0f)
 			rotationAngles.y -= 360.0f;
@@ -272,13 +289,13 @@ void keyboard(unsigned char key, int x, int y)
 
 	case '+':
 	case '=': //skalowanie modelu w górê
-		scaleModel += 0.1;
+		scaleModel += 0.02;
 		updateProjectionMatrix();
 		break;
 
 	case '-': // skalowanie modelu w dó³
-		if (scaleModel.x > 0.1f)
-			scaleModel -= 0.1;
+		if (scaleModel.x > 0.03f)
+			scaleModel -= 0.02;
 		updateProjectionMatrix();
 		break;
 
@@ -321,22 +338,146 @@ void setupShaders()
 	mvMatrixLoc = glGetUniformLocation(shaderProgram, "modelViewMatrix");
 	normalMatrixLoc = glGetUniformLocation(shaderProgram, "normalMatrix");
 
-	lightAmbientLoc = glGetUniformLocation(shaderProgram, "lightAmbient");
-	matAmbientLoc = glGetUniformLocation(shaderProgram, "matAmbient");
-
 	lightPositionLoc = glGetUniformLocation(shaderProgram, "lightPosition");
 	lightDiffuseLoc = glGetUniformLocation(shaderProgram, "lightDiffuse");
-	matDiffuseLoc = glGetUniformLocation(shaderProgram, "matDiffuse");
-
-	lightSpecularLoc = glGetUniformLocation(shaderProgram, "lightSpecular");
-	matSpecularLoc = glGetUniformLocation(shaderProgram, "matSpecular");
-	matShineLoc = glGetUniformLocation(shaderProgram, "matShine");
+	
 }
 
 /*------------------------------------------------------------------------------------------
 ** funkcja tworzaca VAO i VBO z czajniczkiem
 **------------------------------------------------------------------------------------------*/
-void importModel()
+void terrain()
 {
-	model = new Model(".\\models\\cow.obj");
+	ilInit();
+	ilEnable(IL_ORIGIN_SET);
+	ilOriginFunc(IL_ORIGIN_LOWER_LEFT);
+	ImageStat* tData = Image((const wchar_t*)(L"terrain.png"));
+	ImageStat* cData = Image((const wchar_t*)(L"colormap.png"));
+
+	vector<GLfloat> vertices; //kontener na wierzcho³ki
+	vector<GLfloat> normals; //kontener na normale
+	vector<GLuint> index;	//kontener na indeksy
+	vector<GLfloat> colors; // kontener na kolory
+
+	int primitive= tData->width * tData->height;
+	int vertex;
+
+	for (int y = 0; y < tData->height; y++)
+	{
+		for (int x = 0; x < tData->width; x++)
+		{
+			//generowanie wierzcho³ków
+			vertex = x + y * tData->width;
+
+			vertices.push_back(x - tData->width / 2);
+			vertices.push_back(y - tData->height / 2);
+			vertices.push_back((GLfloat)tData->bytes[vertex * 3] / 255 * heightMulti);
+
+			//generowanie kolorów
+			int colorIndex = ((GLfloat)tData->bytes[vertex * 3] / 255) * cData->width;
+
+			colors.push_back(cData->bytes[colorIndex * 3] / 255.0f);
+			colors.push_back(cData->bytes[colorIndex * 3 + 1] / 255.0f);
+			colors.push_back(cData->bytes[colorIndex * 3 + 2] / 255.0f);
+
+			//generowanie krawêdzi
+			if (y != tData->height - 1)
+			{
+				
+				index.push_back(x + y * tData->width);
+				index.push_back(x + (y + 1) * tData->height);
+			}
+		}
+		index.push_back(primitive);
+	}
+	
+	for (int y = 0; y < tData->height; y++)
+	{
+		for (int x = 0; x < tData->width; x++)
+		{
+			// obliczenia normali oraz przes³anie ich do odpowiednich kontenerów
+			int verts = 5;
+			if (x == 0) verts--;
+			if (x == tData->height - 1) verts--;
+			if (y == 0) verts--;
+			if (y == tData->width - 1) verts--;
+
+			GLfloat vertX = vertices[(x + y * tData->width) * 3] +
+				(x == 0 ? 0 : vertices[((x - 1) + y * tData->width) * 3]) +
+				(x == tData->height - 1 ? 0 : vertices[((x + 1) + y * tData->width) * 3]) +
+				(y == 0 ? 0 : vertices[(x + (y - 1) * tData->width) * 3]) +
+				(y == tData->width - 1 ? 0 : vertices[(x + (y + 1) * tData->width) * 3]);
+
+			GLfloat vertY = vertices[(x + y * tData->width) * 3 + 1] +
+				(x == 0 ? 0 : vertices[((x - 1) + y * tData->width) * 3 + 1]) +
+				(x == tData->height - 1 ? 0 : vertices[((x + 1) + y * tData->width) * 3 + 1]) +
+				(y == 0 ? 0 : vertices[(x + (y - 1) * tData->width) * 3 + 1]) +
+				(y == tData->width - 1 ? 0 : vertices[(x + (y + 1) * tData->width) * 3 + 1]);
+
+			GLfloat vertZ = vertices[(x + y * tData->width) * 3 + 2] +
+				(x == 0 ? 0 : vertices[((x - 1) + y * tData->width) * 3 + 2]) +
+				(x == tData->height - 1 ? 0 : vertices[((x + 1) + y * tData->width) * 3 + 2]) +
+				(y == 0 ? 0 : vertices[(x + (y - 1) * tData->width) * 3 + 2]) +
+				(y == tData->width - 1 ? 0 : vertices[(x + (y + 1) * tData->width) * 3 + 2]);
+
+			normals.push_back(vertX / verts);
+			normals.push_back(vertY / verts);
+			normals.push_back(vertZ / verts);
+		}
+	}
+	// wyliczenie iloœci elementów do renderowania
+	elements = index.size() * 3;
+	
+	glGenVertexArrays(1, &vao);
+	glGenBuffers(4, vbo);
+	glBindVertexArray(vao);
+
+	// przekazywanie wierzcho³ków
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), &vertices[0], GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	// przekazywanie normali
+	glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(GLfloat), &normals[0], GL_STATIC_DRAW);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	// przekazywanie kolorów
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
+	glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(GLfloat), &colors[0], GL_STATIC_DRAW);
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	// przekazanie indeksów
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[3]);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, index.size() * sizeof(GLuint), &index[0], GL_STATIC_DRAW);
+	glEnable(GL_PRIMITIVE_RESTART);
+	glPrimitiveRestartIndex(primitive);
+	
+	glBindVertexArray(0);
+}
+
+// wczytywanie danych z obrazka i jego generowanie
+ImageStat* Image(const wchar_t* filename)
+{
+	ImageStat* data = new ImageStat();
+	ILuint imageName;
+	ilGenImages(1, &imageName);
+	ilBindImage(imageName);
+	
+	if (!ilLoadImage(filename))
+	{
+		ilBindImage(0);
+		ilDeleteImages(1, &imageName);
+		exit(1);
+	}
+	
+	data->width = ilGetInteger(IL_IMAGE_WIDTH);
+	data->height = ilGetInteger(IL_IMAGE_HEIGHT);
+	data->bytes = new ILubyte[data->width * data->height * 3];
+
+	ilCopyPixels(0, 0, 0, data->width, data->height, 1, IL_RGB, IL_UNSIGNED_BYTE, data->bytes);
+
+	ilBindImage(0);
+	ilDeleteImages(1, &imageName);
+
+	return data;
 }
